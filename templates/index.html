@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .jobs-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .job-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        padding: 20px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .job-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .job-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+    }
+
+    .job-title {
+        font-size: 1.5rem;
+        color: #2c3e50;
+        margin: 0;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+
+    .status-open {
+        background: #4caf50;
+        color: white;
+    }
+
+    .status-in_progress {
+        background: #ff9800;
+        color: white;
+    }
+
+    .status-completed {
+        background: #9e9e9e;
+        color: white;
+    }
+
+    .job-description {
+        color: #555;
+        line-height: 1.5;
+        margin: 15px 0;
+    }
+
+    .job-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px solid #f0f0f0;
+        font-size: 0.9rem;
+        color: #777;
+    }
+
+    .job-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: opacity 0.2s;
+    }
+
+    .btn:hover {
+        opacity: 0.8;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-warning {
+        background: #ffc107;
+        color: #212529;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .create-btn {
+        display: inline-block;
+        margin-bottom: 20px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 50px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .empty-state h3 {
+        color: #999;
+        margin-bottom: 20px;
+    }
+
+    .author-name {
+        font-weight: bold;
+        color: #007bff;
+    }
+</style>
+
+<div class="jobs-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>📋 Список работ</h1>
+        <a href="/add_job" class="btn btn-primary create-btn">➕ Создать работу</a>
+    </div>
+
+    {% if jobs %}
+        {% for job in jobs %}
+        <div class="job-card">
+            <div class="job-header">
+                <h3 class="job-title">{{ job.title }}</h3>
+                <span class="status-badge status-{{ job.status }}">
+                    {% if job.status == 'open' %}
+                        🔓 Открыта
+                    {% elif job.status == 'in_progress' %}
+                        ⚙️ В работе
+                    {% else %}
+                        ✅ Завершена
+                    {% endif %}
+                </span>
+            </div>
+
+            <div class="job-description">
+                {{ job.description }}
+            </div>
+
+            <div class="job-meta">
+                <div>
+                    👤 Автор: <span class="author-name">{{ job.author.name }}</span>
+                </div>
+                <div>
+                    📅 Создана: {{ job.created_at.strftime('%d.%m.%Y %H:%M') }}
+                </div>
+            </div>
+
+            {% if current_user.is_authenticated and current_user == job.author %}
+            <div class="job-actions" style="margin-top: 15px;">
+
+                <a href="/jobs/{{ job.id }}" class="btn btn-warning">✏️ Редактировать</a>
+                <a href="/jobs_delete/{{ job.id }}" class="btn btn-danger" onclick="return confirm('Удалить эту работу?')">🗑️ Удалить</a>
+            </div>
+            {% endif %}
+            {% if job.status == 'open' and current_user != job.author %}
+            <div class="job-actions">
+                <a href="/take_job/{{ job.id }}" class="btn btn-success">📥 Взять в работу</a>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <h3>😕 Пока нет ни одной работы</h3>
+            <p>Станьте первым — создайте работу!</p>
+            <a href="/add_job" class="btn btn-primary">➕ Создать первую работу</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
