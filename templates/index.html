@@ -6,6 +6,27 @@
         display: flex;
         flex-direction: column;
         gap: 20px;
+        max-height: calc(100vh - 150px);
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+
+    .jobs-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .jobs-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .jobs-container::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+
+    .jobs-container::-webkit-scrollbar-thumb:hover {
+        background: #555;
     }
 
     .job-card {
@@ -54,11 +75,6 @@
         color: white;
     }
 
-    .status-completed {
-        background: #9e9e9e;
-        color: white;
-    }
-
     .job-description {
         color: #555;
         line-height: 1.5;
@@ -79,6 +95,7 @@
     .job-actions {
         display: flex;
         gap: 10px;
+        margin-top: 15px;
     }
 
     .btn {
@@ -115,8 +132,15 @@
         color: white;
     }
 
-    .create-btn {
-        display: inline-block;
+    .btn-info {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .header-buttons {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 20px;
     }
 
@@ -139,26 +163,21 @@
     }
 </style>
 
-<div class="jobs-container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1>📋 Список работ</h1>
-        <a href="/add_job" class="btn btn-primary create-btn">➕ Создать работу</a>
+<div class="header-buttons">
+    <h1>📋 Список работ</h1>
+    <div>
+        <a href="/profile" class="btn btn-info">👤 Мой профиль</a>
+        <a href="/add_job" class="btn btn-primary">➕ Создать работу</a>
     </div>
+</div>
 
+<div class="jobs-container">
     {% if jobs %}
         {% for job in jobs %}
         <div class="job-card">
             <div class="job-header">
                 <h3 class="job-title">{{ job.title }}</h3>
-                <span class="status-badge status-{{ job.status }}">
-                    {% if job.status == 'open' %}
-                        🔓 Открыта
-                    {% elif job.status == 'in_progress' %}
-                        ⚙️ В работе
-                    {% else %}
-                        ✅ Завершена
-                    {% endif %}
-                </span>
+
             </div>
 
             <div class="job-description">
@@ -174,26 +193,13 @@
                 </div>
             </div>
 
-            {% if current_user.is_authenticated and current_user == job.author %}
-            <div class="job-actions" style="margin-top: 15px;">
-
-                <a href="/jobs/{{ job.id }}" class="btn btn-warning">✏️ Редактировать</a>
-                <a href="/jobs_delete/{{ job.id }}" class="btn btn-danger" onclick="return confirm('Удалить эту работу?')">🗑️ Удалить</a>
-            </div>
-            {% endif %}
-            {% if job.status == 'open' and current_user != job.author %}
+            {% if current_user != job.author %}
             <div class="job-actions">
-                <a href="/take_job/{{ job.id }}" class="btn btn-success">📥 Взять в работу</a>
+                <a href="/respond/{{ job.id }}" class="btn btn-success">📝 Откликнуться</a>
             </div>
             {% endif %}
         </div>
         {% endfor %}
-    {% else %}
-        <div class="empty-state">
-            <h3>😕 Пока нет ни одной работы</h3>
-            <p>Станьте первым — создайте работу!</p>
-            <a href="/add_job" class="btn btn-primary">➕ Создать первую работу</a>
-        </div>
     {% endif %}
 </div>
 {% endblock %}

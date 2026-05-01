@@ -1,3 +1,3 @@
 from . import users
 from . import jobs
-from . import massages
+from . import responses

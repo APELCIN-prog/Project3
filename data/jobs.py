@@ -20,7 +20,7 @@ class Job(SqlAlchemyBase):
                                     sqlalchemy.ForeignKey('users.id'),
                                     nullable=True)
     status = sqlalchemy.Column(sqlalchemy.String,
-                               default='open')  # open, in_progress, completed
+                               default='open')  # open, in_progress
     created_at = sqlalchemy.Column(sqlalchemy.DateTime,
                                    default=datetime.datetime.now)
 
