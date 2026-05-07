@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Отклики на работу: {{ job.title }}</h1>
+
+{% if responses %}
+    {% for response in responses %}
+    <div style="border:1px solid #ddd; padding:15px; margin:10px 0; border-radius:8px;">
+        <p><strong>👤 {{ response.user.name }}</strong> ({{ response.user.email }})</p>
+        <p>Статус:
+            {% if response.status == 'pending' %}
+                ⏳ На рассмотрении
+            {% elif response.status == 'accepted' %}
+                ✅ Принят
+            {% else %}
+                ❌ Отклонён
+            {% endif %}
+        </p>
+
+        {% if response.status == 'pending' %}
+        <a href="/accept_response/{{ response.id }}" class="btn btn-success">✅ Принять</a>
+        <a href="/reject_response/{{ response.id }}" class="btn btn-danger">❌ Отклонить</a>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+    <p>Пока нет откликов на эту работу</p>
+{% endif %}
+
+<a href="/profile">← Назад в профиль</a>
+{% endblock %}

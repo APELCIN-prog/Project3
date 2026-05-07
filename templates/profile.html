@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .profile-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .profile-header {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .profile-header h2 {
+        margin: 0 0 15px 0;
+        color: #333;
+    }
+
+    .profile-info {
+        margin: 10px 0;
+    }
+
+    .profile-info p {
+        margin: 8px 0;
+        font-size: 16px;
+    }
+
+    .section {
+        margin-bottom: 35px;
+    }
+
+    .section-title {
+        font-size: 22px;
+        font-weight: bold;
+        padding-bottom: 10px;
+        border-bottom: 3px solid #007bff;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .job-card {
+        border: 1px solid #e0e0e0;
+        padding: 20px;
+        margin: 15px 0;
+        border-radius: 10px;
+        background: #fff;
+        transition: box-shadow 0.2s;
+    }
+
+    .job-card:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .job-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+
+    .job-description {
+        margin: 12px 0;
+        color: #555;
+        line-height: 1.4;
+    }
+
+    .job-actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-sm {
+        display: inline-block;
+        padding: 6px 14px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        transition: opacity 0.2s;
+        cursor: pointer;
+        border: none;
+    }
+
+    .btn-sm:hover {
+        opacity: 0.8;
+    }
+
+    .btn-warning {
+        background: #ffc107;
+        color: #000;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    .btn-info {
+        background: #17a2b8;
+        color: #fff;
+    }
+
+    .nav-btn {
+        display: inline-block;
+        background: #007bff;
+        color: white;
+        padding: 8px 18px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: background 0.2s;
+    }
+
+    .nav-btn:hover {
+        background: #0056b3;
+    }
+
+    .empty-message {
+        color: #999;
+        padding: 20px;
+        text-align: center;
+        font-style: italic;
+        background: #f9f9f9;
+        border-radius: 8px;
+    }
+
+    .profile-header p {
+        margin: 8px 0;
+    }
+</style>
+
+<div class="profile-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h1 style="margin: 0; color: #333;">👤 Мой профиль</h1>
+        <a href="/" class="nav-btn">← На главную</a>
+    </div>
+
+    <div class="profile-header">
+        <h2>{{ user.name }}</h2>
+        <div class="profile-info">
+            <p><strong>📧 Email:</strong> {{ user.email }}</p>
+            <p><strong>🔑 Логин:</strong> {{ user.username }}</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">📝 Мои созданные работы</div>
+        {% if my_jobs %}
+        {% for job in my_jobs %}
+        <div class="job-card">
+            <div class="job-title">{{ job.title }}</div>
+            <div class="job-description">{{ job.description }}</div>
+            <div class="job-actions">
+                <a href="/jobs/{{ job.id }}" class="btn-sm btn-warning">✏️ Редактировать</a>
+                <a href="/jobs_delete/{{ job.id }}" class="btn-sm btn-danger"
+                   onclick="return confirm('Удалить эту работу?')">🗑️ Удалить</a>
+                <a href="/responses/{{ job.id }}" class="btn-sm btn-info">👥 Отклики ({{ job.responses|length }})</a>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-message">📭 У вас пока нет созданных работ</div>
+        {% endif %}
+    </div>
+
+
+    <div class="section">
+        <div class="section-title">⏳ Ожидают одобрения</div>
+        {% if pending_jobs %}
+        {% for job in pending_jobs %}
+        <div class="job-card">
+            <div class="job-title">{{ job.title }}</div>
+            <div class="job-description">{{ job.description }}</div>
+            <div><strong>Автор:</strong> {{ job.author.name }}</div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-message">⏳ Нет откликов, ожидающих одобрения</div>
+        {% endif %}
+    </div>
+
+
+    <div class="section">
+        <div class="section-title">⚙️ Мои выполняемые работы</div>
+        {% if accepted_jobs %}
+        {% for job in accepted_jobs %}
+        <div class="job-card">
+            <div class="job-title">{{ job.title }}</div>
+            <div class="job-description">{{ job.description }}</div>
+            <div><strong>Автор:</strong> {{ job.author.name }}</div>
+            <div class="job-actions">
+                <a href="/chat/{{ job.id }}" class="btn-sm btn-info">💬 Чат</a>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-message">⚙️ У вас нет выполняемых работ</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
