@@ -170,7 +170,10 @@
         <a href="/add_job" class="btn btn-primary">➕ Создать работу</a>
     </div>
 </div>
-
+<form action="/" method="get" class="search-form">
+    <input type="text" name="q" placeholder="Поиск работы..." value="{{ search_query }}">
+    <button type="submit">Найти</button>
+</form>
 <div class="jobs-container">
     {% if jobs %}
         {% for job in jobs %}

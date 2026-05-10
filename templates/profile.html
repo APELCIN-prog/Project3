@@ -190,18 +190,32 @@
         <div class="section-title">⚙️ Мои выполняемые работы</div>
         {% if accepted_jobs %}
         {% for job in accepted_jobs %}
+        {% if user.id == job.author.id %}
+        <!-- Блок для АВТОРА -->
         <div class="job-card">
             <div class="job-title">{{ job.title }}</div>
             <div class="job-description">{{ job.description }}</div>
-            <div><strong>Автор:</strong> {{ job.author.name }}</div>
+            <div><strong>🛠️ Исполнитель:</strong> {{ job.executor.name }}</div>
             <div class="job-actions">
-                <a href="/chat/{{ job.id }}" class="btn-sm btn-info">💬 Чат</a>
+                <a href="/chat/{{ job.id }}" class="btn-sm btn-info">💬 Чат с исполнителем</a>
             </div>
         </div>
+
+        {% else %}
+        <!-- Блок для ИСПОЛНИТЕЛЯ -->
+        <div class="job-card">
+            <div class="job-title">{{ job.title }}</div>
+            <div class="job-description">{{ job.description }}</div>
+            <div><strong>👥 Заказчик:</strong> {{ job.author.name }}</div>
+            <div class="job-actions">
+                <a href="/chat/{{ job.id }}" class="btn-sm btn-info">💬 Чат с заказчиком</a>
+            </div>
+        </div>
+
+        {% endif %}
         {% endfor %}
         {% else %}
         <div class="empty-message">⚙️ У вас нет выполняемых работ</div>
         {% endif %}
     </div>
-</div>
-{% endblock %}
+    {% endblock %}

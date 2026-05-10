@@ -8,6 +8,8 @@ from data.job_form import JobsForm
 from data.register_form import RegisterForm
 from data.responses import Response
 from sqlalchemy.orm import joinedload
+from data.messages import Message
+
 
 app = Flask(__name__)
 login_manager = LoginManager()
@@ -19,11 +21,21 @@ app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 @app.route("/")
 @login_required
 def index():
+    search_query = request.args.get('q', '').strip()
+
     with db_session.create_session() as db_sess:
-        jobs = db_sess.query(Job).filter(Job.author_id != current_user.id).all()
-        for job in jobs:
-            _ = job.author.name
-    return render_template("index.html", jobs=jobs)
+        query = db_sess.query(Job).options(joinedload(Job.author), joinedload(Job.responses)).filter(
+            Job.author_id != current_user.id)
+
+        if search_query:
+            query = query.filter(
+                (Job.title.ilike(f"%{search_query}%")) |
+                (Job.description.ilike(f"%{search_query}%"))
+            )
+
+        jobs = query.all()
+
+    return render_template("index.html", jobs=jobs, search_query=search_query)
 
 
 @app.route('/logout')
@@ -170,24 +182,38 @@ def respond_to_job(id):
 @login_required
 def profile():
     with db_session.create_session() as db_sess:
-        my_jobs = db_sess.query(Job).filter(Job.author_id == current_user.id).all()
-        for job in my_jobs:
-            _ = len(job.responses)
+        # 1. Мои созданные работы (с откликами)
+        my_jobs = db_sess.query(Job).options(joinedload(Job.responses)) \
+            .filter(Job.author_id == current_user.id).all()
 
-        pending_responses = db_sess.query(Response).filter(
+        # 2. Ожидают одобрения (с авторами работ)
+        pending_responses = db_sess.query(Response).options(
+            joinedload(Response.job).joinedload(Job.author)
+        ).filter(
             Response.user_id == current_user.id,
             Response.status == 'pending'
         ).all()
         pending_jobs = [r.job for r in pending_responses]
 
-        accepted_responses = db_sess.query(Response).filter(
-            Response.user_id == current_user.id,
-            Response.status == 'accepted'
+        # 3. Мои выполняемые работы
+        # Работы, где я — автор (и работа в процессе)
+        my_hiring = db_sess.query(Job).options(
+            joinedload(Job.executor),
+            joinedload(Job.author)
+        ).filter(
+            Job.author_id == current_user.id,
+            Job.status == 'in_progress'
         ).all()
-        accepted_jobs = [r.job for r in accepted_responses]
 
-        for job in pending_jobs + accepted_jobs:
-            _ = job.author.name
+        # Работы, где я — исполнитель (с авторами работ)
+        my_work = db_sess.query(Job).options(
+            joinedload(Job.author)
+        ).filter(
+            Job.executor_id == current_user.id,
+            Job.status == 'in_progress'
+        ).all()
+
+        accepted_jobs = my_hiring + my_work
 
     return render_template('profile.html',
                            user=current_user,
@@ -200,16 +226,15 @@ def profile():
 @login_required
 def view_responses(job_id):
     with db_session.create_session() as db_sess:
+        # 1. Получаем саму работу (проверяем права доступа)
         job = db_sess.query(Job).filter(Job.id == job_id).first()
 
         if not job or job.author_id != current_user.id:
             abort(404)
 
-        responses = db_sess.query(Response).filter(Response.job_id == job_id).all()
-
-        for response in responses:
-            _ = response.user.name
-            _ = response.user.email
+        # 2. Получаем список откликов.
+        responses = db_sess.query(Response).options(joinedload(Response.user)) \
+            .filter(Response.job_id == job_id).all()
 
     return render_template('responses.html', job=job, responses=responses)
 
@@ -256,6 +281,51 @@ def reject_response(response_id):
         job_id = response.job.id
 
     return redirect(f'/responses/{job_id}')
+
+
+@app.route('/send_message/<int:job_id>', methods=['POST'])
+@login_required
+def send_message(job_id):
+    text = request.form.get('text')
+    if not text:
+        abort(400)
+
+    with db_session.create_session() as db_sess:
+        job = db_sess.query(Job).filter(
+            Job.id == job_id,
+            Job.status == 'in_progress',
+            # Даем доступ, если я автор ИЛИ я исполнитель
+            ((Job.author_id == current_user.id) | (Job.executor_id == current_user.id))
+        ).first()
+
+        if not job:
+            abort(403)
+
+        message = Message()
+        message.text = text
+        message.user_id = current_user.id
+        message.job_id = job_id
+
+        db_sess.add(message)
+        db_sess.commit()
+
+    return redirect(f'/chat/{job_id}')
+
+
+@app.route('/chat/<int:job_id>')
+@login_required
+def chat(job_id):
+    with db_session.create_session() as db_sess:
+        job = db_sess.query(Job).filter(Job.id == job_id).first()
+
+        if not job or (job.author_id != current_user.id and job.executor_id != current_user.id):
+            abort(403)
+
+        messages = db_sess.query(Message).options(joinedload(Message.user)).filter(
+            Message.job_id == job_id
+        ).order_by(Message.created_date).all()
+
+    return render_template('chat.html', job=job, messages=messages)
 
 
 def main():
