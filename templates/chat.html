@@ -1,42 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
 <style>
-    .chat-container {
+    /* Область, где лежат все сообщения */
+    #messages {
         display: flex;
-        flex-direction: column;
-        height: calc(100vh - 150px); /* Высота на весь экран минус хедер */
-        max-width: 800px;
-        margin: 0 auto;
+        flex-direction: column; /* Чтобы сообщения шли друг под другом */
+        gap: 15px;
     }
 
-    .btn-info {
-    background: #17a2b8;
-    color: white;
-    padding: 6px 14px;
-    text-decoration: none;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    transition: opacity 0.2s;
-    }
-
-    .btn-info:hover {
-        opacity: 0.8;
-    }
-
-    .messages-area {
-        flex-grow: 1;
-        overflow-y: auto;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 15px; /* Расстояние между сообщениями */
-    }
-    
-    /* Стили для самого сообщения */
     .message-bubble {
-        max-width: 75%;
+        max-width: 75%; /* Ограничиваем ширину */
         padding: 12px 16px;
         border-radius: 20px;
         font-size: 15px;
@@ -44,117 +21,95 @@
         position: relative;
     }
 
-    /* Мои сообщения (справа) */
+    /* Мои сообщения (СПРАВА) */
     .my-message {
-        background-color: #007bff; /* Синий */
+        background-color: #007bff; /* Синий фон */
         color: white;
-        align-self: flex-end; /* Прижимаем вправо */
-        border-bottom-right-radius: 4px; /* Сглаживаем угол */
+
+        /* Bootstrap-овский способ прижать к правому краю */
+        justify-content: flex-end;
+
+        /* Сглаживаем углы */
+        border-bottom-right-radius: 4px;
+        border-bottom-left-radius: 20px;
     }
 
-    /* Чужие сообщения (слева) */
+    /* Сообщения собеседника (СЛЕВА) */
     .other-message {
-        background-color: #f1f1f1; /* Светло-серый */
+        background-color: #f1f1f1; /* Светло-серый фон */
         color: #333;
-        align-self: flex-start; /* Прижимаем влево */
+
+        justify-content: flex-start;
+
+         /* Сглаживаем углы */
         border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 20px;
     }
-
-    /* Имя автора над сообщением */
-    .message-author {
-        font-size: 13px;
-        font-weight: bold;
-        margin-bottom: 4px;
-    }
-
-    /* Дата сообщения */
-    .message-time {
-        font-size: 11px;
-        color: #999;
-        margin-top: 4px;
-    }
-
-    /* Стили для формы отправки */
-    .chat-input-area {
-        display: flex;
-        padding: 15px;
-        background-color: #f8f9fa;
-        border-top: 1px solid #e0e0e0;
-    }
-    
-    .chat-input-area input {
-        flex-grow: 1; /* Растягиваем на всю доступную ширину */
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 20px; /* Закругленные края поля ввода */
-        outline: none;
-    }
-
-    .chat-input-area button {
-        margin-left: 10px;
-         /* Используем стили из вашего CSS */
-         padding: 8px 16px; 
-         border-radius: 6px; 
-         cursor: pointer; 
-         font-size: 0.9rem; 
-         background-color: #28a745; /* Зеленый, как btn-success */
-         color: white; 
-         border: none; 
-         transition: opacity 0.2s; 
-     }
-     
-     .chat-input-area button:hover {
-         opacity: 0.8;
-     }
 </style>
 
-<div class="chat-container">
-    <h2>Чат по работе: <strong>{{ job.title }}</strong></h2>
+<div class="container-fluid h-100">
+    <div class="row h-100">
+        <!-- Основная колонка с чатом -->
+        <div class="col-12 col-md-8 p-0 h-100">
+            <div class="d-flex flex-column h-100">
 
-    <div id="messages" class="messages-area">
+                <!-- Шапка чата -->
+                <div class="bg-light p-3 border-bottom d-flex align-items-center">
+                    <h2 class="mb-0 flex-grow-1">Чат по работе: <strong>{{ job.title }}</strong></h2>
+                </div>
 
-        {% for message in messages %}
-        <div class="message-bubble
-          {% if message.user_id == current_user.id %}my-message{% else %}other-message{% endif %}">
+                <!-- Область сообщений (растягивается) -->
+                <div id="messages" class="flex-grow-1 p-3 overflow-auto">
+                    {% for message in messages %}
+                    <div class="message-bubble {% if message.user_id == current_user.id %}my-message{% else %}other-message{% endif %}">
+                        {% if message.user_id != current_user.id %}
+                        <div class="message-author text-muted small mb-1">
+                            {{ message.user.username }}
+                        </div>
+                        {% endif %}
+                        <div class="text-break">
+                            {{ message.text }}
+                        </div>
+                        <div class="message-time text-muted small mt-1">
+                            {{ message.created_date.strftime('%H:%M') }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
 
-            <!-- Показываем имя автора только для чужих сообщений -->
-            {% if message.user_id != current_user.id %}
-            <div class="message-author">{{ message.user.username }}</div>
-            {% endif %}
-
-            {{ message.text }}
-
-            <div class="message-time">
-                {{ message.created_date.strftime('%H:%M') }}
+                <!-- Панель ввода сообщения -->
+                <form action="{{ url_for('send_message', job_id=job.id) }}" method="post"
+                      class="p-3 border-top d-flex align-items-center bg-white">
+                    <input type="text" name="text"
+                           class="form-control flex-grow-1 me-2"
+                           placeholder="Введите ваше сообщение..." required autofocus>
+                    <button type="submit" class="btn btn-success">Отправить</button>
+                </form>
             </div>
         </div>
-        {% endfor %}
 
+         <!-- Боковая колонка -->
+         <div class="col-md-4 bg-light p-3 border-start d-none d-md-block">
+            <a href="{{ url_for('profile') }}" class="btn btn-info w-100">
+                👤 Выйти в профиль
+            </a>
+         </div>
     </div>
-
-    <form action="{{ url_for('send_message', job_id=job.id) }}" method="post" class="chat-input-area">
-        <input type="text" name="text" placeholder="Введите ваше сообщение..." required autofocus>
-        <button type="submit">Отправить</button>
-    </form>
-
-    <!-- НОВАЯ КНОПКА -->
-    <a href="{{ url_for('profile') }}" class="btn-sm btn-info">
-        👤 Выйти в профиль
-    </a>
 </div>
 
+<!-- Скрипт для прокрутки -->
 <script>
     const messagesArea = document.getElementById('messages');
     if (messagesArea) {
       messagesArea.scrollTop = messagesArea.scrollHeight;
-      
-      const chatForm = document.querySelector('.chat-input-area form');
+      const chatForm = document.querySelector('.d-flex form'); // Обновили селектор
       if (chatForm) {
           chatForm.addEventListener('submit', () => {
+              setTimeout(() => {
+                  messagesArea.scrollTop = messagesArea.scrollHeight;
+              }, 50);
           });
       }
     }
 </script>
-
-{% endblock %}```
-
+{% endblock %}
