@@ -1,31 +1,59 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Отклики на работу: {{ job.title }}</h1>
-
-{% if responses %}
-    {% for response in responses %}
-    <div style="border:1px solid #ddd; padding:15px; margin:10px 0; border-radius:8px;">
-        <p><strong>👤 {{ response.user.name }}</strong> ({{ response.user.email }})</p>
-        <p>Статус:
-            {% if response.status == 'pending' %}
-                ⏳ На рассмотрении
-            {% elif response.status == 'accepted' %}
-                ✅ Принят
-            {% else %}
-                ❌ Отклонён
-            {% endif %}
-        </p>
-
-        {% if response.status == 'pending' %}
-        <a href="/accept_response/{{ response.id }}" class="btn btn-success">✅ Принять</a>
-        <a href="/reject_response/{{ response.id }}" class="btn btn-danger">❌ Отклонить</a>
-        {% endif %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0">Отклики на работу: <span class="text-primary">{{ job.title }}</span></h1>
+        <a href="/profile" class="btn btn-outline-secondary">← Назад в профиль</a>
     </div>
-    {% endfor %}
-{% else %}
-    <p>Пока нет откликов на эту работу</p>
-{% endif %}
 
-<a href="/profile">← Назад в профиль</a>
+    {% if responses %}
+        <div class="row">
+            {% for response in responses %}
+            <div class="col-12 mb-3">
+                <div class="card shadow-sm border-0 rounded-3">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">
+                                    <strong>👤 {{ response.user.name }}</strong>
+                                </h5>
+                                <p class="text-muted small mb-0">{{ response.user.email }}</p>
+                            </div>
+
+                            <span class="badge
+                                {% if response.status == 'pending' %}bg-warning text-dark
+                                {% elif response.status == 'accepted' %}bg-success
+                                {% else %}bg-danger{% endif %} fs-6 px-3 py-2">
+                                {% if response.status == 'pending' %}
+                                    ⏳ На рассмотрении
+                                {% elif response.status == 'accepted' %}
+                                    ✅ Принят
+                                {% else %}
+                                    ❌ Отклонён
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        {% if response.status == 'pending' %}
+                        <div class="d-flex gap-2 mt-3 pt-2 border-top">
+                            <a href="/accept_response/{{ response.id }}" class="btn btn-success"
+                               onclick="return confirm('Принять этого исполнителя?')">✅ Принять</a>
+                            <a href="/reject_response/{{ response.id }}" class="btn btn-outline-danger"
+                               onclick="return confirm('Отклонить этот отклик?')">❌ Отклонить</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body text-center py-5">
+                <p class="text-muted mb-0">😕 Пока нет откликов на эту работу</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
 {% endblock %}

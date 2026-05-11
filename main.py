@@ -9,9 +9,17 @@ from data.register_form import RegisterForm
 from data.responses import Response
 from sqlalchemy.orm import joinedload
 from data.messages import Message
-
+from data.api import register_api_routes
+import os
+from werkzeug.utils import secure_filename
+from datetime import datetime
+from flask import send_file
 
 app = Flask(__name__)
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'txt', 'md', 'pdf', 'docx'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -94,22 +102,6 @@ def register():
     return render_template('register.html', title='Регистрация', form=form)
 
 
-@app.route('/add_job', methods=['GET', 'POST'])
-@login_required
-def add_jobs():
-    form = JobsForm()
-    if form.validate_on_submit():
-        with db_session.create_session() as db_sess:
-            job = Job()
-            job.title = form.title.data
-            job.description = form.description.data
-            job.author_id = current_user.id
-            db_sess.add(job)
-            db_sess.commit()
-            return redirect('/')
-    return render_template('jobs.html', title='Создание работы', form=form)
-
-
 @app.route('/jobs/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_jobs(id):
@@ -182,11 +174,9 @@ def respond_to_job(id):
 @login_required
 def profile():
     with db_session.create_session() as db_sess:
-        # 1. Мои созданные работы (с откликами)
         my_jobs = db_sess.query(Job).options(joinedload(Job.responses)) \
             .filter(Job.author_id == current_user.id).all()
 
-        # 2. Ожидают одобрения (с авторами работ)
         pending_responses = db_sess.query(Response).options(
             joinedload(Response.job).joinedload(Job.author)
         ).filter(
@@ -195,8 +185,6 @@ def profile():
         ).all()
         pending_jobs = [r.job for r in pending_responses]
 
-        # 3. Мои выполняемые работы
-        # Работы, где я — автор (и работа в процессе)
         my_hiring = db_sess.query(Job).options(
             joinedload(Job.executor),
             joinedload(Job.author)
@@ -205,7 +193,6 @@ def profile():
             Job.status == 'in_progress'
         ).all()
 
-        # Работы, где я — исполнитель (с авторами работ)
         my_work = db_sess.query(Job).options(
             joinedload(Job.author)
         ).filter(
@@ -226,13 +213,11 @@ def profile():
 @login_required
 def view_responses(job_id):
     with db_session.create_session() as db_sess:
-        # 1. Получаем саму работу (проверяем права доступа)
         job = db_sess.query(Job).filter(Job.id == job_id).first()
 
         if not job or job.author_id != current_user.id:
             abort(404)
 
-        # 2. Получаем список откликов.
         responses = db_sess.query(Response).options(joinedload(Response.user)) \
             .filter(Response.job_id == job_id).all()
 
@@ -281,6 +266,46 @@ def reject_response(response_id):
         job_id = response.job.id
 
     return redirect(f'/responses/{job_id}')
+
+
+@app.route('/add_job', methods=['GET', 'POST'])
+@login_required
+def add_jobs():
+    form = JobsForm()
+    if form.validate_on_submit():
+        with db_session.create_session() as db_sess:
+            job = Job()
+            job.title = form.title.data
+            job.description = form.description.data
+            job.author_id = current_user.id
+
+            if form.file.data:
+                file = form.file.data
+                filename = secure_filename(
+                    f"{current_user.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}")
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                job.file_path = filepath
+
+            db_sess.add(job)
+            db_sess.commit()
+            return redirect('/')
+    return render_template('jobs.html', title='Создание работы', form=form)
+
+
+@app.route('/download/<int:job_id>')
+@login_required
+def download_file(job_id):
+    with db_session.create_session() as db_sess:
+        job = db_sess.query(Job).filter(Job.id == job_id).first()
+
+        if not job or not job.file_path:
+            abort(404)
+
+        if current_user.id != job.author_id and current_user.id != job.executor_id:
+            abort(403)
+
+        return send_file(job.file_path, as_attachment=True)
 
 
 @app.route('/send_message/<int:job_id>', methods=['POST'])
@@ -350,6 +375,12 @@ def main():
     # db_sess.add(user2)
     # db_sess.commit()
 
+    register_api_routes(app)
+    # http://127.0.0.1:5000/api/users Список всех пользователей
+    # http://127.0.0.1:5000/api/users/1 Пользователя с ID=1
+    # http://127.0.0.1:5000/api/jobs Список всех работ
+    # http://127.0.0.1:5000/api/jobs/1 Работу с ID=1
+    # http://127.0.0.1:5000/api/responses/1 Отклики на работу с ID=1
     app.run()
 
 

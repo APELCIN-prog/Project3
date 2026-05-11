@@ -1,208 +1,102 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <h1 class="h2 mb-0">📋 Список работ</h1>
+        <div class="d-flex gap-2">
+            <a href="/profile" class="btn btn-outline-info">
+                <i class="bi bi-person"></i> 👤 Мой профиль
+            </a>
+            <a href="/add_job" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> ➕ Создать работу
+            </a>
+        </div>
+    </div>
+
+    <form action="/" method="get" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Поиск работы по названию..." value="{{ search_query }}">
+            <button class="btn btn-primary" type="submit">🔍 Найти</button>
+        </div>
+    </form>
+
+    <div class="row g-4">
+        {% if jobs %}
+            {% for job in jobs %}
+            <div class="col-12">
+                <div class="card shadow-sm border-0 rounded-3 job-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h3 class="card-title h4 mb-0 text-primary">{{ job.title }}</h3>
+                        </div>
+
+                        <p class="card-text text-secondary">{{ job.description }}</p>
+
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 pt-2 border-top text-muted small">
+                            <div class="d-flex gap-3">
+                                <span>👤 Автор: <strong class="text-dark">{{ job.author.name }}</strong></span>
+                                <span>📅 {{ job.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                            </div>
+                        </div>
+
+                        {% if current_user != job.author %}
+                        <div class="mt-3">
+                            <a href="/respond/{{ job.id }}" class="btn btn-success w-100">
+                                📝 Откликнуться
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% if job.file_path %}
+                        <div class="mt-2">
+                            <a href="/download/{{ job.id }}" class="btn btn-sm btn-outline-secondary">
+                                📎 Скачать файл с заданием
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info text-center py-5" role="alert">
+                    <h4 class="alert-heading">😕 Нет доступных работ</h4>
+                    <p class="mb-0">Попробуйте изменить параметры поиска или создайте новую работу!</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
 <style>
-    .jobs-container {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        max-height: calc(100vh - 150px);
-        overflow-y: auto;
-        padding-right: 10px;
-    }
-
-    .jobs-container::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    .jobs-container::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-    }
-
-    .jobs-container::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 10px;
-    }
-
-    .jobs-container::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-
     .job-card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        padding: 20px;
         transition: transform 0.2s, box-shadow 0.2s;
     }
 
     .job-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12) !important;
     }
 
-    .job-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-        border-bottom: 2px solid #f0f0f0;
-        padding-bottom: 10px;
+    .btn-outline-info {
+        border-color: #17a2b8;
     }
 
-    .job-title {
-        font-size: 1.5rem;
-        color: #2c3e50;
-        margin: 0;
-    }
-
-    .status-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: bold;
-    }
-
-    .status-open {
-        background: #4caf50;
+    .btn-outline-info:hover {
+        background-color: #17a2b8;
         color: white;
     }
 
-    .status-in_progress {
-        background: #ff9800;
-        color: white;
-    }
+    @media (max-width: 768px) {
+        .d-flex.flex-md-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
 
-    .job-description {
-        color: #555;
-        line-height: 1.5;
-        margin: 15px 0;
-    }
-
-    .job-meta {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 15px;
-        padding-top: 10px;
-        border-top: 1px solid #f0f0f0;
-        font-size: 0.9rem;
-        color: #777;
-    }
-
-    .job-actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 15px;
-    }
-
-    .btn {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        text-decoration: none;
-        font-size: 0.9rem;
-        transition: opacity 0.2s;
-    }
-
-    .btn:hover {
-        opacity: 0.8;
-    }
-
-    .btn-primary {
-        background: #007bff;
-        color: white;
-    }
-
-    .btn-warning {
-        background: #ffc107;
-        color: #212529;
-    }
-
-    .btn-danger {
-        background: #dc3545;
-        color: white;
-    }
-
-    .btn-success {
-        background: #28a745;
-        color: white;
-    }
-
-    .btn-info {
-        background: #17a2b8;
-        color: white;
-    }
-
-    .header-buttons {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 50px;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .empty-state h3 {
-        color: #999;
-        margin-bottom: 20px;
-    }
-
-    .author-name {
-        font-weight: bold;
-        color: #007bff;
+        .btn {
+            text-align: center;
+        }
     }
 </style>
-
-<div class="header-buttons">
-    <h1>📋 Список работ</h1>
-    <div>
-        <a href="/profile" class="btn btn-info">👤 Мой профиль</a>
-        <a href="/add_job" class="btn btn-primary">➕ Создать работу</a>
-    </div>
-</div>
-<form action="/" method="get" class="search-form">
-    <input type="text" name="q" placeholder="Поиск работы..." value="{{ search_query }}">
-    <button type="submit">Найти</button>
-</form>
-<div class="jobs-container">
-    {% if jobs %}
-        {% for job in jobs %}
-        <div class="job-card">
-            <div class="job-header">
-                <h3 class="job-title">{{ job.title }}</h3>
-
-            </div>
-
-            <div class="job-description">
-                {{ job.description }}
-            </div>
-
-            <div class="job-meta">
-                <div>
-                    👤 Автор: <span class="author-name">{{ job.author.name }}</span>
-                </div>
-                <div>
-                    📅 Создана: {{ job.created_at.strftime('%d.%m.%Y %H:%M') }}
-                </div>
-            </div>
-
-            {% if current_user != job.author %}
-            <div class="job-actions">
-                <a href="/respond/{{ job.id }}" class="btn btn-success">📝 Откликнуться</a>
-            </div>
-            {% endif %}
-        </div>
-        {% endfor %}
-    {% endif %}
-</div>
 {% endblock %}

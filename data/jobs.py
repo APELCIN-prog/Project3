@@ -12,6 +12,7 @@ class Job(SqlAlchemyBase):
                            autoincrement=True)
     title = sqlalchemy.Column(sqlalchemy.String,
                               nullable=False)
+    file_path = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     description = sqlalchemy.Column(sqlalchemy.String,
                                     nullable=False)
     author_id = sqlalchemy.Column(sqlalchemy.Integer,
