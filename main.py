@@ -15,6 +15,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 from flask import send_file
 
+
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'txt', 'md', 'pdf', 'docx'}
